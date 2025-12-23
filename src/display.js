@@ -2006,7 +2006,8 @@ function update_location_icon() {
     } else {
         icon = "star_border";
     }
-    location_icon_span.innerHtml = materialIcon(icon, ...extraCss);
+    clear(location_icon_span);
+    addNode(location_icon_span, materialIcon(icon, ...extraCss));
 }
 
 function create_location_choice_dropdown({name, icon, class_name}) {
