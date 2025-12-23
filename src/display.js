@@ -32,6 +32,8 @@ import { PointyStarParticle, RainParticle, SnowParticle } from "./particles.js";
 import { get_game_version } from "./game_version.js";
 import { process_conditions } from "./conditions.js";
 import { translationManager } from "./translation.js";
+import { clear, addLine as addDiv, addSpan } from "./dom_manipulation.js";
+
 let activity_anim; //for the activity and gameAction animation interval
 
 let location_choice_divs = {}; //for dropdowns
@@ -561,25 +563,22 @@ function create_effect_tooltip({effect_name, duration, add_bonus=false}) {
     }
 
     for(const [key, stat_value] of Object.entries(effects.stats)) {
-        tooltip.innerHTML += `<br>${capitalize_first_letter(stat_names[key])}`;
-        
+        let entry = `${capitalize_first_letter(stat_names[key])}`;        
         let flat = false;
         if(stat_value.flat) {
             const sign = stat_value.flat > 0? "+":"";
-            tooltip.innerHTML += `: ${sign}${Math.round(100*stat_value.flat)/100}`;
+            entry += `: ${sign}${Math.round(100*stat_value.flat)/100}`;
             flat = true;
-
-            
         }
         if(stat_value.multiplier) {
             if(flat) {
-                tooltip.innerHTML += `, x${Math.round(100*stat_value.multiplier)/100}`;
+                entry += `, x${Math.round(100*stat_value.multiplier)/100}`;
             } else {
-                tooltip.innerHTML += `: x${Math.round(100*stat_value.multiplier)/100}`;
+                entry += `: x${Math.round(100*stat_value.multiplier)/100}`;
             }
         }
+        addDiv(tooltip, entry);
     }
-
     
     const xp_multipliers = Object.keys(effects.xp_multipliers);
     if(xp_multipliers.length > 0) {
@@ -590,11 +589,8 @@ function create_effect_tooltip({effect_name, duration, add_bonus=false}) {
             name = xp_multipliers[0].replace("_"," ");
         }
         name = capitalize_first_letter(name);
-        if(tooltip.innerHTML) {
-            tooltip.innerHTML += `<br>${name} xp gain: x${effects.xp_multipliers[xp_multipliers[0]]}`;
-        } else {
-            tooltip.innerHTML = `${name} xp gain: x${effects.xp_multipliers[xp_multipliers[0]]}`;
-        }
+        let entry = `${name} xp gain: x${effects.xp_multipliers[xp_multipliers[0]]}`;
+        addDiv(tooltip, entry);
         for(let i = 1; i < xp_multipliers.length; i++) {
             let name;
             if(xp_multipliers[i] !== "all" && xp_multipliers[i] !== "hero" && xp_multipliers[i] !== "all_skill") {
@@ -602,7 +598,7 @@ function create_effect_tooltip({effect_name, duration, add_bonus=false}) {
             } else {
                 name = xp_multipliers[i].replace("_"," ");
             }
-            tooltip.innerHTML += `<br>${name} xp gain: x${effects.xp_multipliers[xp_multipliers[i]]}`;
+            addDiv(tooltip, `${name} xp gain: x${effects.xp_multipliers[xp_multipliers[i]]}`);
         }
     }
 
@@ -614,7 +610,7 @@ function end_activity_animation(remove) {
     clearInterval(activity_anim);
     const div = document.getElementById("action_status_div");
     if(remove && div) {
-        div.innerHTML = "";
+        clear(div);
     }
 }
 
@@ -898,22 +894,23 @@ function start_activity_animation(settings) {
     activity_anim = setInterval(() => { //sets a tiny little "animation" for activity text
         const action_status_div = document.getElementById("action_status_div");
         let end = "";
-        if(action_status_div.innerHTML.endsWith("...")) {
+        if(action_status_div.textContent.endsWith("...")) {
             end = "...";
-        } else if(action_status_div.innerHTML.endsWith("..")) {
+        } else if(action_status_div.textContent.endsWith("..")) {
             end = "..";
-        } else if(action_status_div.innerHTML.endsWith("."))
+        } else if(action_status_div.textContent.endsWith("."))
             end = ".";
 
         if(settings?.book_title) {
-            action_status_div.innerHTML = action_status_div.innerHTML.split(",")[0] + `, ${format_reading_time(item_templates[settings.book_title].getRemainingTime())} left`;
-            action_status_div.innerHTML += end;
+            let actionName = action_status_div.textContent.split(",")[0];
+            const timeLeft = `, ${format_reading_time(item_templates[settings.book_title].getRemainingTime())} left`;            
+            action_status_div.textContent = actionName + timeLeft + end;
         }
 
         if(end.length < 3){
-            action_status_div.innerHTML += ".";
+            action_status_div.textContent += ".";
         } else {
-            action_status_div.innerHTML = action_status_div.innerHTML.substring(0, action_status_div.innerHTML.length - 3);
+            action_status_div.textContent = action_status_div.textContent.substring(0, action_status_div.textContent.length - 3);
         }
      }, 600);
 }
@@ -1595,11 +1592,9 @@ function create_inventory_item_div({key, item_count, target, is_equipped, trade_
 
 
     if(target_item.tags?.equippable) {
-        if(target_item.tags.tool) {
-            item_name_div.innerHTML = `<span class = "item_slot" >[tool]</span> <span>${target_item.getName()}</span>`;
-        } else {
-            item_name_div.innerHTML = `<span class = "item_slot" >[${target_item.equip_slot}]</span> <span>${target_item.getName()}</span>`;
-        }
+        const slot = target_item.tags.tool ? '[tool]' : `[${target_item.equip_slot}]`;
+        addSpan(item_name_div, slot, "item_slot");
+        addSpan(item_name_div, target_item.getName());
         item_name_div.classList.add(`${item_class}_name`);
         item_div.appendChild(item_name_div);
 
@@ -1612,40 +1607,32 @@ function create_inventory_item_div({key, item_count, target, is_equipped, trade_
             item_div.classList.add(`${item_class}`, `${target_class_name}`, `item_equippable`);
         }
         item_control_div.dataset.item_slot = target_item.equip_slot;
-        //
-    } else if(target_item.tags.component) {
-        //
-        item_name_div.innerHTML = `<span class = "item_category">[Comp]</span> <span class="item_name">${target_item.getName()}</span>`;
+        
+    } else if(target_item.tags.component) {                
+        addSpan(item_name_div, '[Comp]', "item_category");
+        addSpan(item_name_div, target_item.getName(), "item_name");
         item_name_div.classList.add(`${item_class}_name`);
         item_div.appendChild(item_name_div);
 
         item_control_div.classList.add(`${item_class}_control`, `${target_class_name}_control`, `${target_class_name}_component`);
         item_control_div.appendChild(item_div);
 
-        item_div.classList.add(`${item_class}`, `${target_class_name}`, "item_component");
-        //
-    } else if(target_item.tags.book) {
-        //
-        item_name_div.innerHTML = '<span class = "item_category">[Book]</span>';
+        item_div.classList.add(`${item_class}`, `${target_class_name}`, "item_component");        
+    } else if(target_item.tags.book) {        
+        addSpan(item_name_div, '[Book]', "item_category");
+        addSpan(item_name_div, target_item.name, "book_name", "item_name");
         item_name_div.classList.add(`${item_class}`);
-        item_name_div.innerHTML += ` <span class = "book_name item_name">"${target_item.name}"</span>`;
 
         if(book_stats[target_item.name].is_finished) {
             item_div.classList.add("book_finished");
         } else if(get_current_book() === target_item.name) {
             item_control_div.classList.add("book_active");
         }
-        //
     } else {
-        //
-        item_name_div.innerHTML = `<span class = "item_category"></span> <span class = "item_name">${target_item.getName()}</span>`;
+        addSpan(item_name_div, '', "item_category");
+        addSpan(item_name_div, target_item.getName(), "item_name");
     }
-    
-    if(item_count > 1) {
-        item_name_div.innerHTML += `<span class="item_count"> x${item_count}</span>`;
-    } else {
-        item_name_div.innerHTML += `<span class="item_count"></span>`;
-    }
+    addSpan(item_name_div, item_count > 1 ? `x${item_count}` : '', "item_count");
 
     item_name_div.classList.add(`${item_class}_name`);
     item_div.appendChild(item_name_div);
@@ -1686,12 +1673,12 @@ function create_inventory_item_div({key, item_count, target, is_equipped, trade_
         if(typeof trade_index === "undefined" && target_item.tags.equippable) {
             if(!is_equipped) {
                 let item_equip_span = document.createElement("span");
-                item_equip_span.innerHTML = "[equip]";
+                item_equip_span.textContent = "[equip]";
                 item_equip_span.classList.add("equip_item_button", "item_controls");
                 item_additional.appendChild(item_equip_span);
             } else {
                 let item_unequip_div = document.createElement("div");
-                item_unequip_div.innerHTML = "[take off]";
+                item_unequip_div.textContent = "[take off]";
                 item_unequip_div.classList.add("unequip_item_button", "item_controls");
                 item_additional.appendChild(item_unequip_div);
             }
@@ -1700,8 +1687,8 @@ function create_inventory_item_div({key, item_count, target, is_equipped, trade_
     
     item_additional.appendChild(create_trade_buttons());
 
-    let item_value_span = document.createElement("span");
-    item_value_span.innerHTML = `${format_money(round_item_price(target_item.getValue({region: current_location?.market_region, multiplier: price_multiplier})), true)}`;
+    let item_value_span = document.createElement("span");    
+    item_value_span.textContent = `${format_money(round_item_price(target_item.getValue({region: current_location?.market_region, multiplier: price_multiplier})), true)}`;
     item_value_span.classList.add("item_value", "item_controls");
     item_additional.appendChild(item_value_span);
     item_control_div.appendChild(item_additional);
@@ -1857,7 +1844,7 @@ function update_displayed_normal_location(location) {
             const crafting_button = document.createElement("div");
             crafting_button.classList.add("location_choices", "choice_craft");
             crafting_button.setAttribute("onclick", 'openCraftingWindow()');
-            crafting_button.innerHTML = `<i class="material-icons">construction</i> ${location.crafting.use_text}`;
+            addNodes(crafting_button, materialIcon("construction"), span(location.crafting.use_text));
             action_div.appendChild(crafting_button);
         }
     }
@@ -1867,19 +1854,16 @@ function update_displayed_normal_location(location) {
 
     if(location.housing?.is_unlocked) { 
         const start_sleeping_div = document.createElement("div");
-        
-        start_sleeping_div.innerHTML = '<i class="material-icons">bed</i>  ' + location.housing.text_to_sleep;
+        addNodes(start_sleeping_div, materialIcon("bed"), span(location.housing.text_to_sleep));        
         start_sleeping_div.id = "start_sleeping_div";
         start_sleeping_div.setAttribute('onclick', 'start_sleeping()');
 
         const open_storage_div = document.createElement("div");
-        
-        open_storage_div.innerHTML = '<i class="material-icons">inventory_2</i>  Open your personal chest';
+        addNodes(open_storage_div, materialIcon("inventory_2"), span('Open your personal chest'));        
         open_storage_div.id = "open_storage_div";
         open_storage_div.setAttribute('onclick', 'openStorage()');
 
-        action_div.appendChild(start_sleeping_div);
-        action_div.appendChild(open_storage_div);
+        addNodes(action_div, start_sleeping_div, open_storage_div);
     }
     
     ////////////////////////////////////
@@ -2012,13 +1996,17 @@ function update_displayed_normal_location(location) {
 }
 
 function update_location_icon() {
+    let icon = "";
+    let extraCss = [];
     if(current_location.housing && current_location.housing.is_unlocked) {
-        location_icon_span.innerHTML = '<i class="material-icons location_bed_icon">bed</i>'
+        icon = "bed";
+        extraCss.add("location_bed_icon");
     } else if(favourite_locations[current_location.id]) {
-        location_icon_span.innerHTML = '<i class="material-icons">star</i>'
+        icon = "star";
     } else {
-        location_icon_span.innerHTML = '<i class="material-icons">star_border</i>'
+        icon = "star_border";
     }
+    location_icon_span.innerHtml = materialIcon(icon, ...extraCss);
 }
 
 function create_location_choice_dropdown({name, icon, class_name}) {
@@ -5281,22 +5269,23 @@ function hide_loading_screen() {
 function set_loading_screen_versions(save_version) {
     const loading_screen = document.getElementById("loading_screen_version_info");
     const current_version = get_game_version();
-    loading_screen.innerHTML = 
-    `Save game version: ${save_version || "none"}<br>
- Current game version: ${current_version}<br>`;
+    addSpan(loading_screen, `Save game version: ${save_version || "none"}`);
+    addDiv(loading_screen, `Current game version: ${current_version}`);    
     if(save_version) {
-      if(save_version === current_version) {
-        loading_screen.innerHTML += "<div class='top_border'>No changes since the last time you played~</div>"
+        let loading_text = "";
+        if(save_version === current_version) {
+            loading_text = "No changes since the last time you played~";
         } else if(is_a_older_than_b(save_version, current_version)) {
-            loading_screen.innerHTML += "<div class='top_border'>Game has been updated since the last time you played, check the changelog for more details</div>";
+            loading_text = "Game has been updated since the last time you played, check the changelog for more details";
         } else {
-            loading_screen.innerHTML += "<div class='top_border'>Your save is from a newer version of the game. Continuing is likely to lead to multiple issues!</div>";
+            loading_text = "Your save is from a newer version of the game. Continuing is likely to lead to multiple issues!";
         }
+        addDiv(loading_screen, loading_text, "top_border");
     }
 }
 
 function set_loading_screen_progress(message) {
-    loading_progress_div.innerHTML = message;
+    loading_progress_div.textContent = message;
 }
 
 function hide_loading_text() {
@@ -5308,13 +5297,13 @@ function set_loading_screen_errors_warning() {
     loading_screen_errors_field.classList.remove('loading_screen_status_warnings');
     loading_screen_errors_field.classList.add('loading_screen_status_errors');
 
-    loading_screen_errors_field.innerHTML = 'An error has occured on loading! Please open the browser console to check for details and then let the developer know!';
+    loading_screen_errors_field.textContent = 'An error has occured on loading! Please open the browser console to check for details and then let the developer know!';
 }
 
 function set_loading_screen_warnings_warning() {
     const loading_screen_errors_field = document.getElementById("loading_screen_status");
     loading_screen_errors_field.classList.add('loading_screen_status_warnings');
-    loading_screen_errors_field.innerHTML = "A potential issue has occured on loading. Please open the browser console to check for details.";
+    loading_screen_errors_field.textContent = "A potential issue has occured on loading. Please open the browser console to check for details.";
 }
 
 function show_play_button() {
