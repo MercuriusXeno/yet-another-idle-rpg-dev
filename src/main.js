@@ -32,7 +32,7 @@ import { end_activity_animation,
          update_displayed_combat_location, update_displayed_normal_location,
          log_loot, update_displayed_equipment,
          update_displayed_health, update_displayed_stamina,
-         format_money, update_displayed_stats,
+         update_displayed_stats,
          update_displayed_effects, update_displayed_effect_durations,
          update_displayed_time, update_displayed_character_xp, 
          start_sleeping_display,
@@ -5228,7 +5228,6 @@ window.move_item_to_storage = move_item_to_storage;
 window.remove_item_from_storage = remove_item_from_storage;
 window.is_storage_open = is_storage_open;
 
-window.format_money = format_money;
 window.get_character_money = character.get_character_money;
 
 window.use_item = use_item;

@@ -1,5 +1,11 @@
 // class for handling document and element appends in a way that's *supposedly* safer than innerHtml +=
 // experimental, until proven otherwise. - merc
+
+
+/**
+ * Replace the element's children with nothing. This clears the dom node of any children added previously.
+ * @param  {HTMLElement} el the element being unburdened of its children.
+ */
 export function clear(el) {
     el.replaceChildren();
 }
@@ -9,28 +15,183 @@ export function clear(el) {
 // tooltip.append(
 //   document.createElement('br'), ...);
 
-export function node(type, text, ...cssClasses) {
+/**
+ * Create a single node of the requested type with the requested inner/content text and classes provided.
+ * @param  {string} type the type of element to create on the dom
+ * @param  {string} text the inner text or text content of the element, if applicable
+ * @param  {...string} cssClasses the class or classes to add to the element's css clast list, if applicable
+ */
+function node(type, text, ...cssClasses) {
     const node = document.createElement(type);
-    cssClasses && node.classList.add(...cssClasses);
-    node.textContent = text ?? '';
+    cssClasses && cssClasses.length > 0 && node.classList.add(...cssClasses);
+    node.textContent = text ?? ''; // fighting browser compat
+    node.innerText = text ?? ''; // fighting browser compat
     return node;
 }
 
-export function addNode(el, node) { el.appendChild(node); }
+/**
+ * Clears the element's children before adding the selected nodes to its children.
+ * @param  {HTMLElement} el the root node we are clearing, then adding elements, as children, to.
+ * @param  {...HTMLElement} nodes a collection of nodes being added to the element provided.
+ */
+export function setNodes(el, ...nodes) {
+    clear(el);
+    addNodes(el, ...nodes);
+}
 
+/**
+ * Adds a single node to the parent element provided. We don't expose this one
+ * because it's the same signature as addNodes, there's no reason to expose both. 
+ * @param  {HTMLElement} el the root node we are adding elements, as children, to.
+ * @param  {HTMLElement} node a node we're adding to the provided element.
+ */
+function addNode(el, node) {
+    // this is a safety thing, but it also makes style-less spans brainless
+    // so let's call it a feature? This lets you throw strings at addNode.
+    // It doesn't work if you want styles but it's great for inlining otherwise.
+    if (typeof node === 'string') {
+        node = span(node);
+    }
+    try {
+        el.appendChild(node);
+    } catch (error) {
+        el.append(node);
+    }
+}
+
+/**
+ * Wraps a node around the selected child nodes after fabricating the node with a supplier.
+ * @param  {HTMLElement} el the root node we are adding elements, as children, to.
+ * @param  {...HTMLElement} nodes a collection of nodes being added to the element
+ */
 export function addNodes(el, ...nodes) { nodes.forEach(node => addNode(el, node)); }
 
-export function div(text, ...cssClasses) { return node('div', text, cssClasses); }
+/**
+ * Wraps a node around the selected child nodes after fabricating the node with a supplier.
+ * @param  {Function(): HTMLElement} nodeSupplier the supplier of a node we generate, before adding children to.
+ * @param  {...HTMLElement} nodes a collection of nodes being wrapped by the element
+ * @returns the requested node with its wrapped children.
+ */
+export function nodeAround(nodeSupplier, ...nodes) {
+    let node = nodeSupplier("");
+    addNodes(node, ...nodes);
+    return node;
+}
 
-export function span(text, ...cssClasses) { return node('span', text, cssClasses); }
+/**
+ * A div around a body of text, with the selected css classes.
+ * @returns the requested div.
+ */
+export function div(text, ...cssClasses) { return node('div', text, ...cssClasses); }
 
-export function icon(text, ...cssClasses) { return node('i', text, cssClasses); }
+/**
+ * A div around a collection of nodes.
+ * @param  {...HTMLElement} nodes a collection of nodes being wrapped by the bold element
+ * @returns the requested div and its child nodes.
+ */
+export function divAround(...nodes) { return nodeAround(div, ...nodes); }
 
-/// i am lazy - merc
-export function materialIcon(text, ...cssClasses) { return icon(text, ['material-icons', ...cssClasses]); }
+/**
+ * A span around a body of text, with the selected css classes.
+ * @returns the requested span.
+ */
+export function span(text, ...cssClasses) { return node('span', text, ...cssClasses); }
 
-export function addDiv(el, text, ...cssClasses) { addNode(el, div(text, cssClasses)); }
+/**
+ * Wraps a span around a collection of nodes.
+ * @param  {...HTMLElement} nodes a collection of nodes being wrapped by the bold element
+ * @returns the requested nodes wrapped in a span.
+ */
+export function spanAround(...nodes) { return nodeAround(span, nodes); }
 
-export function addSpan(el, text, ...cssClasses) { addNode(el, span(text, cssClasses)); }
+/**
+ * A body of text wrapped in bold tags, with the selected styles.
+ * @param {string} text the inner text of the bold element, if applicable.
+ * @param  {...string} cssClasses the css styles of the bold element, if applicable
+ * @returns the requested text, in bold.
+ */
+export function bold(text, ...cssClasses) { return node('b', text, ...cssClasses); }
 
-export function addIcon(el, text, ...cssClasses) { addNode(el, icon(text, cssClasses)); }
+/**
+ * Returns a bold wrapper for the requested elements. Note that bold is not a node type.
+ * @param  {...HTMLElement} nodes a collection of nodes being wrapped by the bold element
+ * @returns the requested bold tagged nodes.
+ */
+export function boldAround(...nodes) { return nodeAround(bold, nodes); }
+
+/**
+ * An icon element with the selected text and classes.
+ * @param  {...string} cssClasses the css styles of the icon, if applicable
+ * @returns the requested icon.
+ */
+export function icon(text, ...cssClasses) { return node('i', text, ...cssClasses); }
+
+/**
+ * A break element.
+ * @returns a break element node.
+ */
+export function br() { return node('br', ''); }
+
+/**
+ * Create an icon already classed as a material icon, and inserts its inner text to select which icon.
+ * @param {string} text the inner text of the choice, if applicable
+ * @param  {...string} cssClasses the css styles of the icon, if applicable
+ * @returns an icon styled as the selected material icon.
+ */
+export function materialIcon(text, ...cssClasses) { return icon(text, 'material-icons', ...cssClasses); }
+
+/**
+ * Create an icon for travel locations.
+ * @returns an icon styled as the travel location icon.
+ */
+function choiceIcon() { return materialIcon("check_box_outline_blank", 'location_choice_icon'); }
+
+/**
+ * Create an icon for the combat locations with a little warning sign.
+ * @returns an icon styled as the combat location icon.
+ */
+function combatIcon() { return materialIcon("warning_amber"); }
+
+/**
+ * Create a box around a provided icon and its respective label, styled as directed.
+ * @param {string} text the inner text of the choice, if applicable
+ * @param  {...string} cssClasses the css styles of the inner span, if applicable
+ * @returns a div containing an icon and span, styled as directed
+ */
+export function iconBox(iconNode) {
+    let choiceBox = div("", "location_choice_icon_box");
+    addNodes(choiceBox, iconNode);
+    return choiceBox;
+}
+
+/**
+ * Create a choice box around a standard "location choice" icon and its respective label, styled as directed.
+ * @param {string} text the inner text of the choice, if applicable
+ * @param  {...string} cssClasses the css styles of the inner span, if applicable
+ * @returns a div containing the choice icon and span, styled as directed
+ */
+export function choiceBox(text, ...cssClasses) { return [iconBox(choiceIcon()), span(' '),span(text, ...cssClasses)]; }
+
+/**
+ * Create a choice box around a standard "combat location" icon and its respective label, styled as directed.
+ * @param {string} text the inner text of the choice, if applicable
+ * @param  {...string} cssClasses the css styles of the inner span, if applicable
+ * @returns a div containing the combat icon and span, styled as directed
+ */
+export function combatBox(text, ...cssClasses) { return [iconBox(combatIcon()), span(' '), span(text, ...cssClasses)]; }
+
+/**
+ * Create an array containing 1) an icon for location choice and 2) the label of the location, styled as directed.
+ * @param {string} text the inner text of the choice, if applicable
+ * @param  {...string} cssClasses the css styles of the inner span, if applicable
+ * @returns a div containing the combat icon and span, styled as directed
+ */
+export function choice(text, ...cssClasses) { return [choiceIcon(), span(' '),span(text, ...cssClasses)] }
+
+/**
+ * Create an array containing 1) an icon for location combat and 2) the label of the location, styled as directed.
+ * @param {string} text the inner text of the choice, if applicable
+ * @param  {...any} cssClasses the css styles of the inner span, if applicable
+ * @returns a div containing the combat icon and span, styled as directed
+ */
+export function combat(text, ...cssClasses) { return [combatIcon(), span(' '), span(text, ...cssClasses)] };

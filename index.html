@@ -4,8 +4,8 @@
         <link rel = "stylesheet" href = "style.css">
         
         <script type="module" src="resources/js/HackTimer/HackTimer.min.js"></script>
-        <script type='module' src="dist/bundle.js?version=v0.5.0.25"></script>
-        <!--script type="module" src="src/main.js"></script-->
+        <!-- <script type='module' src="dist/bundle.js?version=v0.5.0.25"></script> -->
+        <script type="module" src="src/main.js"></script>
 
         <!--Icons-->
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -1240,7 +1240,7 @@
             function startTrade(trader_key) {
                 in_trade = true;
                 total_price = 0;
-                trade_price_value.innerHTML = format_money(total_price);
+                setNodes(trade_price_value, ...format_money_nodes(total_price));
                 document.documentElement.style.setProperty('--trade_ammount_button_display', 'inline-block');
                 document.documentElement.style.setProperty('--item_use_button_display', 'none');
 
@@ -1249,7 +1249,7 @@
             function exitTrade() {
                 in_trade = false;
                 total_price = 0;
-                trade_price_value.innerHTML = format_money(total_price);
+                setNodes(trade_price_value, ...format_money_nodes(total_price));
                 document.documentElement.style.setProperty('--trade_ammount_button_display', 'none');
                 document.documentElement.style.setProperty('--item_use_button_display', 'inline-block');
 
@@ -1262,7 +1262,7 @@
 
             function cancelTrade() {
                 total_price = 0;
-                trade_price_value.innerHTML = format_money(total_price);
+                setNodes(trade_price_value, ...format_money_nodes(total_price));
 
                 const accept_button = document.getElementById("accept_trade_button");
                 accept_button.style.cursor = "pointer";
@@ -1274,7 +1274,7 @@
             function acceptTrade() {
                 if(check_trade_cost()) {
                     total_price = 0;
-                    trade_price_value.innerHTML = format_money(total_price);
+                    setNodes(trade_price_value, ...format_money_nodes(total_price));
                     accept_trade();
                 } else {
                     console.log("You can't afford this");
