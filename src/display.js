@@ -32,9 +32,8 @@ import { PointyStarParticle, RainParticle, SnowParticle } from "./particles.js";
 import { get_game_version } from "./game_version.js";
 import { process_conditions } from "./conditions.js";
 import { translationManager } from "./translation.js";
-import { clear, setNodes, addNodes, div, span, 
-    br, bold, materialIcon, divAround, boldAround, 
-    choice, choiceBox, combat, combatBox
+import { clear, setNodes, addNodes, div, span, br, 
+    bold, materialIcon, choice, choiceBox, combat, combatBox
  } from "./dom_manipulation.js";
 
 let activity_anim; //for the activity and gameAction animation interval
@@ -320,7 +319,7 @@ function item_quality_elements(item, options, quality) {
         const rarityMaxSpan = span(item.getRarity(qualityMax));
         rarityMaxSpan.style = colorMax;
         // build nodes
-        result.push(br(), br(), boldAround(span('Quality: '), qualityMinSpan, span(' - '), qualityMaxSpan, 
+        result.push(br(), br(), addNodes(bold(), span('Quality: '), qualityMinSpan, span(' - '), qualityMaxSpan, 
             br(), span('['), rarityMinSpan, span('-'), rarityMaxSpan, span(']')));
     } else {
         const rarityColor = `color: ${rarity_colors[item.getRarity(quality)]}`;
@@ -344,8 +343,8 @@ function create_item_tooltip_content({item, options={}, is_trade = false}) {
     let nodes = [];
 
     //different function used depending if its in trade (oh the horror...)
-    const value_function = is_trade?"getValue":"getBaseValue";
-    nodes.push(divAround(span(item.getName(), 'text-bold')));
+    const value_function = is_trade?"getValue":"getBaseValue";    
+    addNodes(div(), span(item.getName(), 'text-bold'));    
     // description if it exists
     item.description && nodes.push(div(item.description));
     const quality = options?.quality && options.quality[0] ? options.quality[0] : item.quality;
@@ -539,7 +538,7 @@ function create_item_tooltip_content({item, options={}, is_trade = false}) {
             nodes.push(span(' [originally '), ...format_money_nodes(og_price), span(']'));
         }
     }
-    const item_tooltip = divAround(...nodes);
+    const item_tooltip = addNodes(div(), ...nodes);
     return item_tooltip;
 }
 
@@ -602,9 +601,9 @@ function create_effect_tooltip({effect_name, duration, add_bonus=false}) {
     name_span.classList.add("active_effect_name");     
     const duration_span = span(`${format_time({time: {minutes: duration}})}`);
     duration_span.classList.add("active_effect_duration");    
-    const top_div = divAround(name_span, duration_span);
+    const top_div = addNodes(div(), name_span, duration_span);
     top_div.classList.add("active_effect_name_and_duration");
-    const tooltip = divAround(top_div);
+    const tooltip = addNodes(div(), top_div);
     extra_lines.forEach(l => addNodes(tooltip, span(l)));
     tooltip.appendChild(effects_div);
     tooltip.classList.add("active_effect_tooltip");
